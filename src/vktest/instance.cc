@@ -2,8 +2,10 @@
 #include <vktest/utils/check.h>
 
 namespace vkt {
-Instance::Instance(VkInstance &&instance) {
+Instance::Instance(VkInstance &&instance,
+                   std::optional<Callback<DebugCbSig>> debugCb) {
   data = std::move(instance);
+  this->debugCb = std::move(debugCb);
 }
 
 Instance::~Instance() {

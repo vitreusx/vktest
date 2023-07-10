@@ -127,33 +127,33 @@ public:
 
     instanceBuilder.setLayers(customLayers);
 
-    initializeDebugMsgrBuilder();
-    instanceBuilder->pNext = &debugMsgrBuilder.get();
+    prepareDebuggerBuilder();
+    instanceBuilder.enableDebugger(debuggerBuilder);
 
     instance = std::make_shared<vkt::Instance>(instanceBuilder.build());
     vkSys->load(*instance);
 
-    debugMsgr =
-        std::make_unique<vkt::DebugMessenger>(debugMsgrBuilder.build(instance));
+    debugger =
+        std::make_unique<vkt::DebugMessenger>(debuggerBuilder.build(instance));
   }
 
-  void initializeDebugMsgrBuilder() {
-    debugMsgrBuilder.setSeverity(
+  void prepareDebuggerBuilder() {
+    debuggerBuilder.setSeverity(
         VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
         VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
         VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT);
-    debugMsgrBuilder.setMessageType(
+    debuggerBuilder.setMessageType(
         VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
         VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
         VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT);
 
-    debugMsgrBuilder.cb =
+    debuggerBuilder.setCallback(
         [](VkDebugUtilsMessageSeverityFlagBitsEXT severity,
            VkDebugUtilsMessageTypeFlagsEXT type,
            const VkDebugUtilsMessengerCallbackDataEXT *cbData) -> VkBool32 {
-      std::cout << "[Validation Layer] " << cbData->pMessage << std::endl;
-      return VK_FALSE;
-    };
+          std::cout << "[Validation Layer] " << cbData->pMessage << std::endl;
+          return VK_FALSE;
+        });
   }
 
   void createWindowSurface() {
@@ -556,9 +556,9 @@ private:
   std::shared_ptr<vkt::GLFWSys> glfwSys;
   std::unique_ptr<vkt::GLFWWindow> window;
   std::unique_ptr<vkt::VkSys> vkSys;
-  vkt::DebugMessengerBuilder debugMsgrBuilder;
+  vkt::DebugMessengerBuilder debuggerBuilder;
   std::shared_ptr<vkt::Instance> instance;
-  std::unique_ptr<vkt::DebugMessenger> debugMsgr;
+  std::unique_ptr<vkt::DebugMessenger> debugger;
   std::unique_ptr<vkt::Surface> surf;
   std::vector<std::string> reqDevExts, customLayers, customExts;
   std::vector<vkt::PhysicalDevice> physDevs;

@@ -2,6 +2,7 @@
 #include <vector>
 #include <vktest/app_info.h>
 #include <vktest/builder.h>
+#include <vktest/debug_messenger_builder.h>
 #include <vktest/instance.h>
 #include <vktest/vulkan.h>
 
@@ -21,6 +22,7 @@ public:
   InstanceBuilder &setFlags(VkInstanceCreateFlags const &flags);
   InstanceBuilder &setLayers(std::vector<std::string> const &layers);
   InstanceBuilder &setExtensions(std::vector<std::string> const &extensions);
+  InstanceBuilder &enableDebugger(vkt::DebugMessengerBuilder debuggerBuilder);
 
   Instance build() const;
 
@@ -32,5 +34,7 @@ private:
 
   std::vector<std::string> exts;
   std::vector<char const *> extPointers;
+
+  vkt::DebugMessengerBuilder debuggerBuilder;
 };
 } // namespace vkt

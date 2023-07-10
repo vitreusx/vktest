@@ -15,10 +15,11 @@ public:
   }
 
   Builder &operator=(Builder &&other) {
-    if (this == &other)
-      return *this;
-    this->info = std::move(other.info);
-    other.info = {};
+    if (this != &other) {
+      this->info = std::move(other.info);
+      other.info = {};
+    }
+    return *this;
   }
 
   operator CreateInfo &() {

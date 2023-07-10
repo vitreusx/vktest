@@ -54,6 +54,10 @@ public:
     return *this;
   }
 
+  VirtCb<Ret, Args...> &func() const {
+    return *cb;
+  }
+
 private:
   std::shared_ptr<VirtCb<Ret, Args...>> cb;
 };

@@ -1,3 +1,4 @@
+#include <vktest/instance.h>
 #include <vktest/instance_builder.h>
 #include <vktest/utils/check.h>
 
@@ -76,11 +77,18 @@ InstanceBuilder::setExtensions(std::vector<std::string> const &extensions) {
   return *this;
 }
 
+InstanceBuilder &
+InstanceBuilder::enableDebugger(vkt::DebugMessengerBuilder debuggerBuilder) {
+  this->debuggerBuilder = std::move(debuggerBuilder);
+  info.pNext = &(VkDebugUtilsMessengerCreateInfoEXT &)this->debuggerBuilder;
+  return *this;
+}
+
 Instance InstanceBuilder::build() const {
   VkInstance instance;
   auto result = vkCreateInstance(&info, nullptr, &instance);
   if (result != VK_SUCCESS)
     throw std::runtime_error("vkCreateInstance");
-  return Instance(std::move(instance));
+  return Instance(std::move(instance), std::move(debuggerBuilder.cb));
 }
 } // namespace vkt
