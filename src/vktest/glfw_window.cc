@@ -30,6 +30,7 @@ GLFWWindow::GLFWWindow(GLFWSys const &, int width, int height,
 
   glfwSetKeyCallback(data, _MakeCb<0, GLFWkeyfun>{});
   glfwSetWindowSizeCallback(data, _MakeCb<1, GLFWwindowsizefun>{});
+  glfwSetFramebufferSizeCallback(data, _MakeCb<2, GLFWframebuffersizefun>{});
 }
 
 vkt::GLFWWindow::~GLFWWindow() {

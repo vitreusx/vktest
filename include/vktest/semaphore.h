@@ -8,6 +8,7 @@
 namespace vkt {
 class Semaphore : public Wrapper<VkSemaphore> {
 public:
+  Semaphore() = default;
   Semaphore(std::shared_ptr<vkt::Device> dev);
   ~Semaphore();
 

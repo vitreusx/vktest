@@ -7,6 +7,7 @@
 namespace vkt {
 class RenderPass : public Wrapper<VkRenderPass> {
 public:
+  RenderPass() = default;
   RenderPass(VkRenderPass &&data, std::shared_ptr<vkt::Device> dev);
   ~RenderPass();
 

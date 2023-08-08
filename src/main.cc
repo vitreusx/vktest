@@ -59,8 +59,7 @@ public:
     createRenderPass();
     createPipeline();
     createFramebuffers();
-    createSync();
-    createCommand();
+    createFrames();
   }
 
   void setupGlfw() {
@@ -74,12 +73,16 @@ public:
 
   void setupWindow() {
     auto mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-    window = std::make_unique<vkt::GLFWWindow>(
-        *glfwSys, mode->width / 2, mode->height / 2, "vktest", GLFW_NO_API);
+    window = vkt::GLFWWindow(*glfwSys, mode->width / 2, mode->height / 2,
+                             "vktest", GLFW_NO_API);
 
-    window->on->keyEvent = [this](int key, int scancode, int action, int mods) {
+    window.on->keyEvent = [this](int key, int scancode, int action, int mods) {
       if ((key == GLFW_KEY_ESCAPE || key == GLFW_KEY_Q) && action == GLFW_PRESS)
-        glfwSetWindowShouldClose(*window, GLFW_TRUE);
+        glfwSetWindowShouldClose(window, GLFW_TRUE);
+    };
+
+    window.on->framebufferSizeEvent = [this](int width, int height) {
+      framebufferResized = true;
     };
   }
 
@@ -133,8 +136,7 @@ public:
     instance = std::make_shared<vkt::Instance>(instanceBuilder.build());
     vkSys->load(*instance);
 
-    debugger =
-        std::make_unique<vkt::DebugMessenger>(debuggerBuilder.build(instance));
+    debugger = debuggerBuilder.build(instance);
   }
 
   void prepareDebuggerBuilder() {
@@ -158,8 +160,8 @@ public:
 
   void createWindowSurface() {
     vkt::GLFWSurfaceBuilder surfaceBuilder;
-    surfaceBuilder.setWindow(*window);
-    surf = std::make_unique<vkt::Surface>(surfaceBuilder.build(instance));
+    surfaceBuilder.setWindow(window);
+    surf = surfaceBuilder.build(instance);
   }
 
   void findSuitableDevice() {
@@ -217,7 +219,7 @@ public:
         continue;
 
       VkBool32 surfaceSupport;
-      VK_CHECK(vkGetPhysicalDeviceSurfaceSupportKHR(physDev, qfIndex, *surf,
+      VK_CHECK(vkGetPhysicalDeviceSurfaceSupportKHR(physDev, qfIndex, surf,
                                                     &surfaceSupport));
 
       if (!surfaceSupport)
@@ -237,7 +239,7 @@ public:
       if (!availDevExts.isSupported(devExt))
         return std::nullopt;
 
-    auto surfaceDetails = surf->getDetails(physDev);
+    auto surfaceDetails = surf.getDetails(physDev);
     if (surfaceDetails.formats.empty() || surfaceDetails.presentModes.empty())
       return std::nullopt;
 
@@ -271,7 +273,7 @@ public:
   }
 
   void createSwapchain() {
-    swapchainBuilder->surface = *surf;
+    swapchainBuilder->surface = surf;
     swapchainBuilder->imageArrayLayers = 1;
     swapchainBuilder->imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     swapchainBuilder->compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
@@ -310,7 +312,7 @@ public:
       extent = capabilities.currentExtent;
     } else {
       int width, height;
-      glfwGetFramebufferSize(*window, &width, &height);
+      glfwGetFramebufferSize(window, &width, &height);
       extent.width =
           std::clamp((uint32_t)width, capabilities.minImageExtent.width,
                      capabilities.maxImageExtent.width);
@@ -338,7 +340,7 @@ public:
       swapchainBuilder.setQueueFamilyIndices(familyIndices);
     }
 
-    swapchain = std::make_unique<vkt::Swapchain>(swapchainBuilder.build(dev));
+    swapchain = swapchainBuilder.build(dev);
   }
 
   void createSwapchainImageViews() {
@@ -346,7 +348,7 @@ public:
     imageViewBuilder.useColorTargetPreset();
 
     imageViews.clear();
-    for (auto const &image : swapchain->getImages()) {
+    for (auto const &image : swapchain.getImages()) {
       imageViewBuilder.setImage(image, swapchainBuilder->imageFormat);
       imageViews.emplace_back(imageViewBuilder.build(dev));
     }
@@ -398,8 +400,7 @@ public:
     dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     renderPassBuilder.setDependencies({dependency});
 
-    renderPass =
-        std::make_unique<vkt::RenderPass>(renderPassBuilder.build(dev));
+    renderPass = renderPassBuilder.build(dev);
   }
 
   void createPipeline() {
@@ -414,10 +415,10 @@ public:
 
     viewport = {0.0f, 0.0f, (float)extent.width, (float)extent.height,
                 0.0f, 1.0f};
-    pipelineBuilder.setViewports({viewport});
+    // pipelineBuilder.setViewports({viewport});
 
     scissor = {{0, 0}, extent};
-    pipelineBuilder.setScissors({scissor});
+    // pipelineBuilder.setScissors({scissor});
 
     auto &rasterizer = pipelineBuilder.rasterizerInfo;
     rasterizer.depthClampEnable = VK_FALSE;
@@ -470,15 +471,15 @@ public:
     auto pipelineLayout = pipelineLayoutBuilder.build(dev);
     pipelineBuilder.setLayout(pipelineLayout);
 
-    pipelineBuilder.setRenderPass(*renderPass, 0);
+    pipelineBuilder.setRenderPass(renderPass, 0);
 
-    pipeline = std::make_unique<vkt::Pipeline>(pipelineBuilder.build(dev));
+    pipeline = pipelineBuilder.build(dev);
   }
 
   void createFramebuffers() {
     vkt::FramebufferBuilder fbBuilder;
     fbBuilder.setExtent(extent);
-    fbBuilder.setRenderPass(*renderPass);
+    fbBuilder.setRenderPass(renderPass);
 
     for (auto const &imageView : imageViews) {
       fbBuilder.attachImageViews({(VkImageView)imageView});
@@ -486,80 +487,89 @@ public:
     }
   }
 
-  void createSync() {
-    imageAvailSem = std::make_unique<vkt::Semaphore>(dev);
-    renderFinishedSem = std::make_unique<vkt::Semaphore>(dev);
-    inFlightFence =
-        std::make_unique<vkt::Fence>(dev, VK_FENCE_CREATE_SIGNALED_BIT);
-  }
-
-  void createCommand() {
+  void createFrames() {
     vkt::CommandPoolBuilder cmdPoolBuilder;
     cmdPoolBuilder->flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     cmdPoolBuilder->queueFamilyIndex = chosenDev->graphicsQueueIdx;
+    cmdPool = cmdPoolBuilder.build(dev);
 
-    cmdPool = std::make_unique<vkt::CommandPool>(cmdPoolBuilder.build(dev));
-    cmdBuf = std::make_unique<vkt::CommandBuffer>(
-        cmdPool->allocateBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY));
+    frames = std::vector<Frame>(2);
+    for (auto &frame : frames) {
+      frame.imageAvailSem = vkt::Semaphore(dev);
+      frame.renderFinishedSem = vkt::Semaphore(dev);
+      frame.inFlightFence = vkt::Fence(dev, VK_FENCE_CREATE_SIGNALED_BIT);
 
-    cmdBuf->beginRenderPass->renderPass = *renderPass;
-    cmdBuf->beginRenderPass->framebuffer = framebuffers[0];
-    cmdBuf->beginRenderPass->renderArea.offset = {0, 0};
-    cmdBuf->beginRenderPass->renderArea.extent = extent;
-    auto clearValue = VkClearValue{{{0.0f, 0.0f, 0.0f, 1.0f}}};
-    cmdBuf->beginRenderPass.setClearValues({clearValue});
-    cmdBuf->beginRenderPass.subpassContents = VK_SUBPASS_CONTENTS_INLINE;
+      frame.cmdBuf = cmdPool.allocateBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+      frame.cmdBuf.beginRenderPass->renderPass = renderPass;
+      frame.cmdBuf.beginRenderPass->framebuffer = framebuffers[0];
+      frame.cmdBuf.beginRenderPass->renderArea.offset = {0, 0};
+      frame.cmdBuf.beginRenderPass->renderArea.extent = extent;
+      auto clearValue = VkClearValue{{{0.0f, 0.0f, 0.0f, 1.0f}}};
+      frame.cmdBuf.beginRenderPass.setClearValues({clearValue});
+      frame.cmdBuf.beginRenderPass.subpassContents = VK_SUBPASS_CONTENTS_INLINE;
+    }
 
-    queueSubmit.setCommandBuffers({(VkCommandBuffer)*cmdBuf});
-    queueSubmit.setWaitSemaphores(
-        {{(VkSemaphore)*imageAvailSem,
-          VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT}});
-    queueSubmit.setSignalSemaphores({(VkSemaphore)*renderFinishedSem});
-    queueSubmit.fence = *inFlightFence;
     queueSubmit.queue = graphicsQueue;
-
     present.queue = presentQueue;
-    present.setWaitSemaphores({(VkSemaphore)*renderFinishedSem});
   }
 
   void renderLoop() {
-    while (!glfwWindowShouldClose(*window)) {
+    while (!glfwWindowShouldClose(window)) {
       glfwPollEvents();
-
-      vkWaitForFences(*dev, 1, &inFlightFence->base(), VK_TRUE, UINT64_MAX);
-      vkResetFences(*dev, 1, &inFlightFence->base());
-
-      uint32_t imageIndex;
-      vkAcquireNextImageKHR(*dev, *swapchain, UINT64_MAX, *imageAvailSem,
-                            nullptr, &imageIndex);
-      cmdBuf->beginRenderPass->framebuffer = framebuffers[imageIndex];
-
-      vkResetCommandBuffer(*cmdBuf, 0);
-      cmdBuf->startRecording();
-      cmdBuf->beginRenderPass();
-      vkCmdBindPipeline(*cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, *pipeline);
-      vkCmdSetViewport(*cmdBuf, 0, 1, &viewport);
-      vkCmdSetScissor(*cmdBuf, 0, 1, &scissor);
-      vkCmdDraw(*cmdBuf, 3, 1, 0, 0);
-      cmdBuf->endRenderPass();
-      VK_CHECK(vkEndCommandBuffer(*cmdBuf));
-
-      queueSubmit();
-
-      present.setSwapchainImagePairs(
-          {{(VkSwapchainKHR)*swapchain, imageIndex}});
-      present();
+      drawFrame();
     }
+  }
+
+  void drawFrame() {
+    auto &frame = frames[cur_frame_idx];
+
+    vkWaitForFences(*dev, 1, &(VkFence &)frame.inFlightFence, VK_TRUE,
+                    UINT64_MAX);
+
+    uint32_t imageIndex;
+    vkAcquireNextImageKHR(*dev, swapchain, UINT64_MAX, frame.imageAvailSem,
+                          nullptr, &imageIndex);
+
+    vkResetFences(*dev, 1, &(VkFence &)frame.inFlightFence);
+
+    vkResetCommandBuffer(frame.cmdBuf, 0);
+
+    queueSubmit.setWaitSemaphores(
+        {{(VkSemaphore)frame.imageAvailSem,
+          VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT}});
+    queueSubmit.setSignalSemaphores({(VkSemaphore)frame.renderFinishedSem});
+    queueSubmit.fence = frame.inFlightFence;
+    queueSubmit.setCommandBuffers({(VkCommandBuffer)frame.cmdBuf});
+    present.setWaitSemaphores({(VkSemaphore)frame.renderFinishedSem});
+
+    frame.cmdBuf.beginRenderPass->framebuffer = framebuffers[imageIndex];
+    frame.cmdBuf.beginRenderPass->renderArea.extent = extent;
+
+    frame.cmdBuf.startRecording();
+    frame.cmdBuf.beginRenderPass();
+    vkCmdBindPipeline(frame.cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+    vkCmdSetViewport(frame.cmdBuf, 0, 1, &viewport);
+    vkCmdSetScissor(frame.cmdBuf, 0, 1, &scissor);
+    vkCmdDraw(frame.cmdBuf, 3, 1, 0, 0);
+    frame.cmdBuf.endRenderPass();
+    VK_CHECK(vkEndCommandBuffer(frame.cmdBuf));
+
+    queueSubmit();
+
+    present.setSwapchainImagePairs({{(VkSwapchainKHR)swapchain, imageIndex}});
+    present();
+
+    cur_frame_idx = (cur_frame_idx + 1) % (int)frames.size();
   }
 
 private:
   std::shared_ptr<vkt::GLFWSys> glfwSys;
-  std::unique_ptr<vkt::GLFWWindow> window;
+  vkt::GLFWWindow window;
   std::unique_ptr<vkt::VkSys> vkSys;
   vkt::DebugMessengerBuilder debuggerBuilder;
   std::shared_ptr<vkt::Instance> instance;
-  std::unique_ptr<vkt::DebugMessenger> debugger;
-  std::unique_ptr<vkt::Surface> surf;
+  vkt::DebugMessenger debugger;
+  vkt::Surface surf;
   std::vector<std::string> reqDevExts, customLayers, customExts;
   std::vector<vkt::PhysicalDevice> physDevs;
   std::optional<ChosenDev> chosenDev;
@@ -569,18 +579,24 @@ private:
   VkViewport viewport;
   VkExtent2D extent;
   VkRect2D scissor;
-  std::unique_ptr<vkt::Swapchain> swapchain;
+  vkt::Swapchain swapchain;
   std::vector<vkt::ImageView> imageViews;
   std::shared_ptr<vkt::ShaderModule> vertShader, fragShader;
-  std::unique_ptr<vkt::RenderPass> renderPass;
-  std::unique_ptr<vkt::Pipeline> pipeline;
+  vkt::RenderPass renderPass;
+  vkt::Pipeline pipeline;
   std::vector<vkt::Framebuffer> framebuffers;
-  std::unique_ptr<vkt::Semaphore> imageAvailSem, renderFinishedSem;
-  std::unique_ptr<vkt::Fence> inFlightFence;
-  std::unique_ptr<vkt::CommandPool> cmdPool;
-  std::unique_ptr<vkt::CommandBuffer> cmdBuf;
+  vkt::CommandPool cmdPool;
   vkt::QueueSubmitOp queueSubmit;
   vkt::QueuePresentOp present;
+  bool framebufferResized = false;
+
+  struct Frame {
+    vkt::CommandBuffer cmdBuf;
+    vkt::Semaphore imageAvailSem, renderFinishedSem;
+    vkt::Fence inFlightFence;
+  };
+  std::vector<Frame> frames;
+  int cur_frame_idx;
 };
 
 int main() {

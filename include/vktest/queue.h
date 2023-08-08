@@ -21,7 +21,7 @@ public:
   VkQueue queue;
   VkFence fence;
 
-  void operator()();
+  VkResult operator()();
 
 private:
   std::vector<std::pair<VkSemaphore, VkPipelineStageFlags>>
@@ -45,7 +45,7 @@ public:
 
   VkQueue queue;
 
-  void operator()();
+  VkResult operator()();
 
 private:
   std::vector<VkSemaphore> waitSemaphores;

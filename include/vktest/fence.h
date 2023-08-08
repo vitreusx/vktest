@@ -8,6 +8,7 @@
 namespace vkt {
 class Fence : public Wrapper<VkFence> {
 public:
+  Fence() = default;
   Fence(std::shared_ptr<vkt::Device> dev, VkFenceCreateFlags flags = 0);
   ~Fence();
 

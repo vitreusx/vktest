@@ -29,6 +29,7 @@ private:
 
 class CommandBuffer : public Wrapper<VkCommandBuffer> {
 public:
+  CommandBuffer();
   CommandBuffer(VkCommandBuffer &&data);
 
   CommandBuffer(CommandBuffer &&) = default;

@@ -13,6 +13,7 @@ using DebugCbSig = VkBool32 (*)(VkDebugUtilsMessageSeverityFlagBitsEXT,
 
 class DebugMessenger : public Wrapper<VkDebugUtilsMessengerEXT> {
 public:
+  DebugMessenger() = default;
   DebugMessenger(VkDebugUtilsMessengerEXT &&debugMsgr,
                  std::shared_ptr<vkt::Instance> inst, Callback<DebugCbSig> cb);
   ~DebugMessenger();

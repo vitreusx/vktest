@@ -44,8 +44,8 @@ QueueSubmitOp::setSignalSemaphores(std::vector<VkSemaphore> signalSemaphores) {
   return *this;
 }
 
-void QueueSubmitOp::operator()() {
-  VK_CHECK(vkQueueSubmit(queue, 1, &data, fence));
+VkResult QueueSubmitOp::operator()() {
+  return vkQueueSubmit(queue, 1, &data, fence);
 }
 
 QueuePresentOp::QueuePresentOp() {
@@ -85,9 +85,7 @@ QueuePresentOp &QueuePresentOp::setSwapchainImagePairs(
 
 VkQueue queue;
 
-void QueuePresentOp::operator()() {
-  VK_CHECK(vkQueuePresentKHR(queue, &data));
-  for (auto &result : results)
-    VK_CHECK(result);
+VkResult QueuePresentOp::operator()() {
+  return vkQueuePresentKHR(queue, &data);
 }
 } // namespace vkt

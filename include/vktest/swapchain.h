@@ -7,6 +7,7 @@
 namespace vkt {
 class Swapchain : public Wrapper<VkSwapchainKHR> {
 public:
+  Swapchain() = default;
   Swapchain(VkSwapchainKHR &&handle, std::shared_ptr<vkt::Device> dev);
   ~Swapchain();
 

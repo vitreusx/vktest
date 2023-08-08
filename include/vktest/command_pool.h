@@ -10,6 +10,7 @@
 namespace vkt {
 class CommandPool : public Wrapper<VkCommandPool> {
 public:
+  CommandPool() = default;
   CommandPool(VkCommandPool &&data, std::shared_ptr<vkt::Device> dev);
   ~CommandPool();
 

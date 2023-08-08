@@ -7,6 +7,7 @@
 namespace vkt {
 class Pipeline : public Wrapper<VkPipeline> {
 public:
+  Pipeline() = default;
   Pipeline(VkPipeline &&data, std::shared_ptr<vkt::Device> dev);
   ~Pipeline();
 

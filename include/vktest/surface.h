@@ -14,6 +14,7 @@ struct SurfaceDetails {
 
 class Surface : public Wrapper<VkSurfaceKHR> {
 public:
+  Surface() = default;
   Surface(VkSurfaceKHR &&surface, std::shared_ptr<vkt::Instance> instance);
   ~Surface();
 

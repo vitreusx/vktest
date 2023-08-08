@@ -19,6 +19,8 @@ void RenderPassBeginOp::operator()() const {
   vkCmdBeginRenderPass(cmdBuf, &data, subpassContents);
 }
 
+CommandBuffer::CommandBuffer() : beginRenderPass{data} {}
+
 CommandBuffer::CommandBuffer(VkCommandBuffer &&data) : beginRenderPass{data} {
   this->data = std::move(data);
 }

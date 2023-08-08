@@ -36,6 +36,7 @@ private:
 
 class GLFWWindow : public Wrapper<GLFWwindow *> {
 public:
+  GLFWWindow() = default;
   GLFWWindow(GLFWSys const &, int width, int height, std::string const &title,
              int clientApi);
   ~GLFWWindow();

@@ -85,6 +85,20 @@ PipelineBuilder::setDynamicStates(std::vector<VkDynamicState> dynamicStates) {
   this->dynamicStates = std::move(dynamicStates);
   dynamicStateInfo.dynamicStateCount = (uint32_t)this->dynamicStates.size();
   dynamicStateInfo.pDynamicStates = this->dynamicStates.data();
+  for (auto &dynamicState : this->dynamicStates) {
+    switch (dynamicState) {
+    case VK_DYNAMIC_STATE_SCISSOR:
+      viewportInfo.scissorCount = 1;
+      viewportInfo.pScissors = VK_NULL_HANDLE;
+      break;
+    case VK_DYNAMIC_STATE_VIEWPORT:
+      viewportInfo.viewportCount = 1;
+      viewportInfo.pViewports = VK_NULL_HANDLE;
+      break;
+    default:
+      break;
+    }
+  }
   return *this;
 }
 
