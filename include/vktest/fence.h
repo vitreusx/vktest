@@ -1,5 +1,5 @@
 #pragma once
-#include <memory>
+#include <vktest/utils/swap_shared_ptr.h>
 #include <vktest/device.h>
 #include <vktest/utils/check.h>
 #include <vktest/vulkan.h>
@@ -16,6 +16,6 @@ public:
   Fence &operator=(Fence &&) = default;
 
 private:
-  std::shared_ptr<vkt::Device> dev;
+  vkt::swap_shared_ptr<vkt::Device> dev;
 };
 } // namespace vkt

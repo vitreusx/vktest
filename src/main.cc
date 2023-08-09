@@ -53,13 +53,45 @@ public:
     createWindowSurface();
     findSuitableDevice();
     createDevice();
+    createShaders();
     createSwapchain();
     createSwapchainImageViews();
-    createShaders();
     createRenderPass();
     createPipeline();
     createFramebuffers();
     createFrames();
+  }
+
+  void recreateSwapchain() {
+    waitForWindowToAppear();
+
+    VK_CHECK(vkDeviceWaitIdle(*dev));
+
+    frames.clear();
+    framebuffers.clear();
+    pipeline = vkt::Pipeline();
+    renderPass = vkt::RenderPass();
+    imageViews.clear();
+    swapchain = vkt::Swapchain();
+    surf = vkt::Surface();
+
+    createWindowSurface();
+    chosenDev->surfaceDetails = surf.getDetails(*chosenDev->dev);
+    createSwapchain();
+    createSwapchainImageViews();
+    createRenderPass();
+    createPipeline();
+    createFramebuffers();
+    createFrames();
+  }
+
+  void waitForWindowToAppear() {
+    int width = 0, height = 0;
+    glfwGetFramebufferSize(window, &width, &height);
+    while (width == 0 || height == 0) {
+      glfwGetFramebufferSize(window, &width, &height);
+      glfwWaitEvents();
+    }
   }
 
   void setupGlfw() {
@@ -527,8 +559,20 @@ public:
                     UINT64_MAX);
 
     uint32_t imageIndex;
-    vkAcquireNextImageKHR(*dev, swapchain, UINT64_MAX, frame.imageAvailSem,
-                          nullptr, &imageIndex);
+    auto acquireResult = vkAcquireNextImageKHR(
+        *dev, swapchain, UINT64_MAX, frame.imageAvailSem, nullptr, &imageIndex);
+
+    switch (acquireResult) {
+    case VK_ERROR_OUT_OF_DATE_KHR:
+    case VK_SUBOPTIMAL_KHR:
+      recreateSwapchain();
+      return;
+    case VK_SUCCESS:
+      break;
+    default:
+      VK_CHECK(acquireResult);
+      break;
+    }
 
     vkResetFences(*dev, 1, &(VkFence &)frame.inFlightFence);
 
@@ -554,10 +598,23 @@ public:
     frame.cmdBuf.endRenderPass();
     VK_CHECK(vkEndCommandBuffer(frame.cmdBuf));
 
-    queueSubmit();
+    VK_CHECK(queueSubmit());
 
     present.setSwapchainImagePairs({{(VkSwapchainKHR)swapchain, imageIndex}});
-    present();
+    auto presentResult = present();
+
+    auto needsRecreate = false;
+    needsRecreate |= (presentResult == VK_ERROR_OUT_OF_DATE_KHR);
+    needsRecreate |= (presentResult == VK_SUBOPTIMAL_KHR);
+    needsRecreate |= framebufferResized;
+
+    if (needsRecreate) {
+      framebufferResized = false;
+      recreateSwapchain();
+      presentResult = VK_SUCCESS;
+    }
+
+    VK_CHECK(presentResult);
 
     cur_frame_idx = (cur_frame_idx + 1) % (int)frames.size();
   }

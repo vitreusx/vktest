@@ -24,13 +24,15 @@ class GLFWCallbacks {
 public:
   detail::GLFWCb<GLFWkeyfun> keyEvent;
   detail::GLFWCb<GLFWwindowsizefun> windowSizeEvent;
+  detail::GLFWCb<GLFWframebuffersizefun> framebufferSizeEvent;
 
 private:
   friend class GLFWWindow;
 
   template <std::size_t I>
   auto &get() {
-    return std::get<I>(std::tie(keyEvent, windowSizeEvent));
+    return std::get<I>(
+        std::tie(keyEvent, windowSizeEvent, framebufferSizeEvent));
   }
 };
 

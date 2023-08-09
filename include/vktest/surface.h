@@ -1,9 +1,10 @@
 #pragma once
-#include <memory>
 #include <vector>
 #include <vktest/instance.h>
+#include <vktest/utils/swap_shared_ptr.h>
 #include <vktest/vulkan.h>
 #include <vktest/wrapper.h>
+
 
 namespace vkt {
 struct SurfaceDetails {
@@ -24,6 +25,6 @@ public:
   SurfaceDetails getDetails(VkPhysicalDevice &physDev);
 
 private:
-  std::shared_ptr<vkt::Instance> instance;
+  vkt::swap_shared_ptr<vkt::Instance> instance;
 };
 } // namespace vkt

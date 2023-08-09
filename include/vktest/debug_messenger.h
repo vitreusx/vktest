@@ -1,8 +1,9 @@
 #pragma once
-#include <memory>
 #include <vktest/cb.h>
+#include <vktest/utils/swap_shared_ptr.h>
 #include <vktest/vulkan.h>
 #include <vktest/wrapper.h>
+
 
 namespace vkt {
 class Instance;
@@ -22,7 +23,7 @@ public:
   DebugMessenger &operator=(DebugMessenger &&) = default;
 
 private:
-  std::shared_ptr<vkt::Instance> inst;
+  vkt::swap_shared_ptr<vkt::Instance> inst;
   Callback<DebugCbSig> cb;
 };
 } // namespace vkt

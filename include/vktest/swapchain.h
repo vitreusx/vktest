@@ -1,8 +1,9 @@
 #pragma once
-#include <memory>
 #include <vktest/device.h>
+#include <vktest/utils/swap_shared_ptr.h>
 #include <vktest/vulkan.h>
 #include <vktest/wrapper.h>
+
 
 namespace vkt {
 class Swapchain : public Wrapper<VkSwapchainKHR> {
@@ -17,6 +18,6 @@ public:
   std::vector<VkImage> getImages();
 
 private:
-  std::shared_ptr<vkt::Device> dev;
+  vkt::swap_shared_ptr<vkt::Device> dev;
 };
 } // namespace vkt
